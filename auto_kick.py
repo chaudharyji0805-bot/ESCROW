@@ -1,26 +1,51 @@
 import asyncio
 import time
-from database import deals, users
-from pyrogram.enums import ChatMemberStatus
+from telethon.tl.functions.channels import EditBannedRequest
+from telethon.tl.types import ChatBannedRights
+
+from database import deals_col
 
 AUTO_KICK_TIME = 600  # 10 minutes
 
-async def auto_kick_worker(app):
-    while True:
-        now = int(time.time())
+BANNED_RIGHTS = ChatBannedRights(
+    until_date=None,
+    view_messages=True
+)
 
-        for deal in deals.find({"status": "completed"}):
-            if now - deal["completed_at"] >= AUTO_KICK_TIME:
-                for uid in [deal["buyer"], deal["seller"]]:
+async def auto_kick_worker(client):
+    while True:
+        now = time.time()
+
+        # completed deals fetch
+        deals = deals_col.find({"status": "completed"})
+
+        async for deal in _iterate(deals):
+            if now - deal.get("completed_at", 0) >= AUTO_KICK_TIME:
+                chat_id = deal.get("group_id")
+
+                for user_id in (deal.get("buyer"), deal.get("seller")):
+                    if not user_id or not chat_id:
+                        continue
+
                     try:
-                        member = await app.get_chat_member(deal["group_id"], uid)
-                        if member.status not in (
-                            ChatMemberStatus.ADMINISTRATOR,
-                            ChatMemberStatus.OWNER
-                        ):
-                            await app.ban_chat_member(deal["group_id"], uid)
-                            await app.unban_chat_member(deal["group_id"], uid)
-                    except:
+                        await client(EditBannedRequest(
+                            channel=chat_id,
+                            participant=user_id,
+                            banned_rights=BANNED_RIGHTS
+                        ))
+                    except Exception:
                         pass
 
+                # mark as archived to avoid double kick
+                deals_col.update_one(
+                    {"_id": deal["_id"]},
+                    {"$set": {"status": "archived"}}
+                )
+
         await asyncio.sleep(30)
+
+
+# 🔁 helper: async mongo cursor
+async def _iterate(cursor):
+    for doc in cursor:
+        yield doc
