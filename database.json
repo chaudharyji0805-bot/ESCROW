@@ -1,0 +1,270 @@
+{
+    "deal_count_inr": 4,
+    "deal_count_usdt": 22,
+    "form_message": "@admins\nSeller:\nBuyer:\nAmount: \nPayment Method:\nRelease to :\nMore details ~ release in bep pol\n**Refund Condition:-** \nWe want confirmation from both side Buyer and Seller otherwise you have to wait 24 hours for final decision.",
+    "deals": {
+        "710": {
+            "admin_id": 8583334266,
+            "admin_mention": "Maral",
+            "amount": "10",
+            "currency": "usdt",
+            "deal_id": "#Escrow1"
+        },
+        "738": {
+            "admin_id": 7538572906,
+            "admin_mention": "@MeDevu",
+            "amount": "10",
+            "currency": "usdt",
+            "deal_id": "#Escrow2"
+        },
+        "746": {
+            "admin_id": 7538572906,
+            "admin_mention": "@MeDevu",
+            "amount": "500",
+            "currency": "inr",
+            "deal_id": "#Escrow1"
+        },
+        "767": {
+            "admin_id": 8583334266,
+            "admin_mention": "Maral",
+            "amount": "100",
+            "currency": "usdt",
+            "deal_id": "#Escrow3"
+        },
+        "772": {
+            "admin_id": 8583334266,
+            "admin_mention": "Maral",
+            "amount": "100",
+            "currency": "usdt",
+            "deal_id": "#Escrow4"
+        },
+        "776": {
+            "admin_id": 7538572906,
+            "admin_mention": "@MeDevu",
+            "amount": "100",
+            "currency": "usdt",
+            "deal_id": "#Escrow5"
+        },
+        "803": {
+            "admin_id": 7538572906,
+            "admin_mention": "@MeDevu",
+            "amount": "100",
+            "currency": "usdt",
+            "deal_id": "#Escrow6"
+        },
+        "837": {
+            "admin_id": 5011400467,
+            "admin_mention": "@ptsel",
+            "amount": "45",
+            "currency": "usdt",
+            "deal_id": "#Escrow8"
+        },
+        "940": {
+            "admin_id": 5158184800,
+            "admin_mention": "@EvilxHell",
+            "amount": "1000",
+            "currency": "inr",
+            "deal_id": "#Escrow2"
+        },
+        "953": {
+            "admin_id": 5158184800,
+            "admin_mention": "@EvilxHell",
+            "amount": "1000",
+            "currency": "inr",
+            "deal_id": "#Escrow3"
+        },
+        "1080": {
+            "admin_id": 5158184800,
+            "admin_mention": "@EvilxHell",
+            "amount": "500",
+            "currency": "inr",
+            "deal_id": "#Escrow4",
+            "buyer": "@dkm",
+            "seller": "@hii",
+            "status": "active",
+            "time": 1768153831.2024193
+        },
+        "1089": {
+            "admin_id": 5011400467,
+            "admin_mention": "@ptsel",
+            "amount": "50",
+            "currency": "usdt",
+            "deal_id": "#Escrow9",
+            "buyer": "@dkm",
+            "seller": "@hii",
+            "status": "active",
+            "time": 1768153888.3978066
+        },
+        "1135": {
+            "admin_id": 7538572906,
+            "admin_mention": "@MeDevu",
+            "amount": 100,
+            "currency": "usdt",
+            "deal_id": "#Escrow11",
+            "buyer": "@eieisns",
+            "seller": "@sskfj",
+            "status": "active",
+            "time": 1768154659.0829494
+        },
+        "1140": {
+            "admin_id": 8583334266,
+            "admin_mention": "[Maral](tg://user?id=8583334266)",
+            "amount": 100,
+            "currency": "usdt",
+            "deal_id": "#Escrow12",
+            "buyer": "@eieisns",
+            "seller": "@sskfj",
+            "status": "active",
+            "time": 1768154676.559122
+        },
+        "1201": {
+            "admin_id": 7538572906,
+            "admin_mention": "@MeDevu",
+            "amount": 100,
+            "currency": "usdt",
+            "deal_id": "#Escrow14",
+            "buyer": "m",
+            "seller": "n",
+            "status": "active",
+            "time": 1768155694.073929
+        }
+    },
+    "form_entities": [],
+    "limits": {
+        "7538572906": {
+            "inr": 0,
+            "usdt": 100,
+            "is_mod": true,
+            "is_mmod": true
+        },
+        "5011400467": {
+            "inr": 0,
+            "usdt": 50,
+            "is_mod": false
+        },
+        "5158184800": {
+            "inr": 5000,
+            "usdt": 0,
+            "is_mod": true,
+            "is_mmod": true
+        },
+        "6322359719": {
+            "inr": 0,
+            "usdt": 0,
+            "is_mod": true,
+            "is_mmod": true
+        },
+        "8020970979": {
+            "inr": 0,
+            "usdt": 0,
+            "is_mod": true,
+            "is_mmod": false
+        }
+    },
+    "tipped_messages": {
+        "762": "8583334266"
+    },
+    "chat_forms": {},
+    "admin_stats": {
+        "5158184800": {
+            "deals": 8,
+            "amount_inr": 1500.0,
+            "amount_usdt": 600.0,
+            "username": "@EvilxHell"
+        },
+        "7538572906": {
+            "deals": 3,
+            "amount_inr": 0,
+            "amount_usdt": 300.0,
+            "username": "@MeDevu"
+        },
+        "5011400467": {
+            "deals": 3,
+            "amount_inr": 0,
+            "amount_usdt": 350.0,
+            "username": "@ptsel"
+        }
+    },
+    "user_stats": {},
+    "report_history": [
+        {
+            "time": 1768153352.0413616,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768153572.1077428,
+            "amount": 50.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768153816.456617,
+            "amount": 500.0,
+            "currency": "inr"
+        },
+        {
+            "time": 1768154582.120581,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768155673.9753175,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768156516.8805697,
+            "amount": 150.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768156750.1571975,
+            "amount": 150.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768159335.1045365,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768160110.654447,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768160126.9018328,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768160344.914737,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768160357.7359796,
+            "amount": 100.0,
+            "currency": "usdt"
+        },
+        {
+            "time": 1768160814.5478704,
+            "amount": 100.0,
+            "currency": "usdt"
+        }
+    ],
+    "processed_messages": {
+        "1124": "completed",
+        "1192": "completed",
+        "1242": "completed",
+        "1269": "completed",
+        "1331": "completed",
+        "1336": "completed",
+        "1346": "completed",
+        "1351": "completed",
+        "1359": "completed",
+        "1327": "completed",
+        "1364": "completed"
+    },
+    "active_forms": {}
+}
