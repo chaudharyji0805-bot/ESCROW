@@ -1,16 +1,22 @@
-from database import settings
+from database import db
 
-async def authorize_group(chat_id):
+settings = db.settings
+
+# Save authorized group
+async def authorize_group(chat_id: int):
     settings.update_one(
         {"_id": "auth_group"},
         {"$set": {"chat_id": int(chat_id)}},
         upsert=True
     )
 
-async def get_authorized_group():
-    doc = settings.find_one({"_id": "auth_group"})
-    return doc["chat_id"] if doc else None
+# Remove authorization
+async def deauthorize_group():
+    settings.delete_one({"_id": "auth_group"})
 
-async def is_authorized_group(chat_id):
-    gid = await get_authorized_group()
-    return gid == int(chat_id)
+# Check authorization
+async def is_authorized_group(chat_id: int) -> bool:
+    doc = settings.find_one({"_id": "auth_group"})
+    if not doc:
+        return False
+    return doc.get("chat_id") == int(chat_id)
