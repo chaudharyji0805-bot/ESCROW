@@ -1,7 +1,16 @@
+from pymongo import MongoClient
 import asyncio
 import json
 import os
 import time
+import os
+
+mongo = MongoClient(os.getenv("MONGO_URI"))
+db = mongo["escrow_bot"]
+
+users = db.users
+deals = db.deals
+settings = db.settings
 
 DB_FILE = "database.json"
 _db_lock = asyncio.Lock()
@@ -240,3 +249,4 @@ async def get_report(seconds):
             else:
                 total_inr += deal["amount"]
     return deals_count, total_inr, total_usdt
+
