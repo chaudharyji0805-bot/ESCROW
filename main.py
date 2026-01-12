@@ -6,6 +6,9 @@ import logging
 # Configure logging
 logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
                     level=logging.INFO)
+@app.on_startup()
+async def start_tasks():
+    asyncio.create_task(auto_kick_worker(app))
 
 def main():
     client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
@@ -17,3 +20,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
