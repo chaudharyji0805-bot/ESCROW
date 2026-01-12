@@ -6,22 +6,24 @@ from pymongo import MongoClient, ASCENDING
 
 MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
-    raise RuntimeError("MONGO_URI not set")
+    raise RuntimeError("❌ MONGO_URI not set")
 
 mongo = MongoClient(MONGO_URI)
 db = mongo["escrow_bot"]
 
-meta = db.meta              # global counters & config
-deals_col = db.deals        # deals
-limits_col = db.limits      # admin limits
-stats_col = db.stats        # admin/user stats
-forms_col = db.forms        # form messages
-processed_col = db.processed
-reports_col = db.reports
-active_forms_col = db.active_forms
-tipped_col = db.tipped
+# ================== Collections ==================
 
-# ================== Indexes (FAST) ==================
+meta = db.meta                  # global counters & config
+deals_col = db.deals            # deals
+limits_col = db.limits          # admin limits
+stats_col = db.stats            # admin / user stats
+forms_col = db.forms            # form messages
+processed_col = db.processed   # processed msgs
+reports_col = db.reports        # reports
+active_forms_col = db.active_forms
+tipped_col = db.tipped          # tipped messages
+
+# ================== Indexes (FAST & SAFE) ==================
 
 deals_col.create_index([("status", ASCENDING)])
 deals_col.create_index([("buyer", ASCENDING)])
@@ -48,7 +50,6 @@ def _get_meta():
     )
     return meta.find_one({"_id": "global"})
 
-
 # ================== Tipped ==================
 
 async def mark_as_tipped(msg_id, admin_id):
@@ -61,7 +62,6 @@ async def mark_as_tipped(msg_id, admin_id):
 async def get_tipped_admin(msg_id):
     doc = tipped_col.find_one({"msg_id": str(msg_id)})
     return int(doc["admin_id"]) if doc else None
-
 
 # ================== Form System ==================
 
@@ -91,7 +91,6 @@ async def get_form_data(chat_id=None):
     m = _get_meta()
     return m["form_message"], m.get("form_entities", [])
 
-
 # ================== Admin Limits ==================
 
 async def set_admin_limit(user_id, amount=None, currency=None, is_mod=False, is_mmod=False):
@@ -115,7 +114,6 @@ async def get_admin_limit(user_id):
     doc = limits_col.find_one({"user_id": str(user_id)})
     return doc or {"inr": 0, "usdt": 0, "is_mod": False, "is_mmod": False}
 
-
 # ================== Deal Counters ==================
 
 async def increment_deal(currency="inr"):
@@ -132,7 +130,6 @@ async def decrement_deal(currency="inr"):
         {"_id": "global"},
         {"$inc": {f"deal_count_{currency.lower()}": -1}}
     )
-
 
 # ================== Deal Flow ==================
 
@@ -175,7 +172,6 @@ async def get_deal(escrow_msg_id):
 async def get_running_deals():
     return {d["_id"]: d for d in deals_col.find({"status": "active"})}
 
-
 # ================== Processed ==================
 
 async def mark_processed(msg_id, status="completed"):
@@ -189,7 +185,6 @@ async def get_processed_status(msg_id):
     doc = processed_col.find_one({"msg_id": str(msg_id)})
     return doc["status"] if doc else None
 
-
 # ================== Stats & Reports ==================
 
 async def update_stats(user_id, amount, currency, is_admin=False, username=None):
@@ -199,7 +194,7 @@ async def update_stats(user_id, amount, currency, is_admin=False, username=None)
             "deals": 1,
             f"amount_{currency.lower()}": float(amount)
         },
-         "$set": {"username": username or ""}},
+        "$set": {"username": username or ""}},
         upsert=True
     )
 
