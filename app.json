@@ -1,12 +1,13 @@
 {
   "name": "Telegram Escrow Bot",
-  "description": "Advanced Telegram Escrow Bot built with Pyrogram",
+  "description": "Advanced Telegram Escrow Bot with MongoDB support",
   "repository": "https://github.com/chaudharyji0805-bot/ESCROW",
   "keywords": [
     "telegram",
     "escrow",
     "bot",
-    "pyrogram",
+    "telethon",
+    "mongodb",
     "heroku"
   ],
   "env": {
@@ -25,6 +26,14 @@
     "OWNER_ID": {
       "description": "Telegram User ID of Bot Owner",
       "required": true
+    },
+    "MONGO_URI": {
+      "description": "MongoDB connection string (mongodb+srv://...)",
+      "required": true
+    },
+    "LOG_CHANNEL": {
+      "description": "Log channel ID (recommended: -100xxxxxxxxxx)",
+      "required": false
     }
   },
   "formation": {
