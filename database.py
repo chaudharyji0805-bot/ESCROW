@@ -26,10 +26,6 @@ tipped_col = db.tipped
 # ================== Indexes ==================
 
 deals_col.create_index([("status", ASCENDING)])
-deals_col.create_index([("buyer", ASCENDING)])
-deals_col.create_index([("seller", ASCENDING)])
-deals_col.create_index([("time", ASCENDING)])
-
 limits_col.create_index([("user_id", ASCENDING)], unique=True)
 stats_col.create_index([("user_id", ASCENDING), ("is_admin", ASCENDING)])
 processed_col.create_index([("msg_id", ASCENDING)], unique=True)
@@ -80,22 +76,9 @@ async def unset_proof_channel(group_id: int):
 
 async def get_proof_channel(group_id: int):
     doc = meta.find_one({"_id": f"proof_{group_id}"})
-    return int(doc["channel_id"]) if doc and "channel_id" in doc else None
+    return int(doc["channel_id"]) if doc else None
 
-# ================== Tipped ==================
-
-async def mark_as_tipped(msg_id, admin_id):
-    tipped_col.update_one(
-        {"msg_id": str(msg_id)},
-        {"$set": {"admin_id": str(admin_id)}},
-        upsert=True
-    )
-
-async def get_tipped_admin(msg_id):
-    doc = tipped_col.find_one({"msg_id": str(msg_id)})
-    return int(doc["admin_id"]) if doc else None
-
-# ================== Form System ==================
+# ================== FORM SYSTEM ==================
 
 async def update_form_message(new_msg, entities=None, chat_id=None):
     entities = entities or []
@@ -122,7 +105,7 @@ async def get_form_data(chat_id=None):
     m = _get_meta()
     return m["form_message"], m.get("form_entities", [])
 
-# ================== Admin Limits ==================
+# ================== ADMIN LIMITS ==================
 
 async def set_admin_limit(user_id, amount=None, currency=None, is_mod=False, is_mmod=False):
     data = {"inr": 0, "usdt": 0, "is_mod": False, "is_mmod": False}
@@ -145,7 +128,12 @@ async def get_admin_limit(user_id):
     doc = limits_col.find_one({"user_id": str(user_id)})
     return doc or {"inr": 0, "usdt": 0, "is_mod": False, "is_mmod": False}
 
-# ================== Deal Counters ==================
+# 🔥 MISSING FUNCTION (THIS FIXES CRASH)
+async def get_user_limit(user_id, currency):
+    data = await get_admin_limit(user_id)
+    return int(data.get(currency.lower(), 0))
+
+# ================== DEAL COUNTERS ==================
 
 async def increment_deal(currency="inr"):
     res = meta.find_one_and_update(
@@ -162,11 +150,13 @@ async def decrement_deal(currency="inr"):
         {"$inc": {f"deal_count_{currency.lower()}": -1}}
     )
 
-# ================== Deal Flow ==================
+# ================== DEAL FLOW ==================
 
 async def atomic_start_deal(form_msg_id):
     try:
-        active_forms_col.insert_one({"form_id": str(form_msg_id), "status": "processing"})
+        active_forms_col.insert_one(
+            {"form_id": str(form_msg_id), "status": "processing"}
+        )
         return True
     except:
         return False
@@ -179,10 +169,6 @@ async def store_deal(escrow_msg_id, form_msg_id, deal_data):
         "form_id": str(form_msg_id)
     })
     deals_col.insert_one(deal_data)
-    active_forms_col.update_one(
-        {"form_id": str(form_msg_id)},
-        {"$set": {"escrow_id": str(escrow_msg_id)}}
-    )
 
 async def remove_deal(escrow_msg_id):
     deal = deals_col.find_one({"_id": str(escrow_msg_id)})
@@ -196,7 +182,7 @@ async def get_deal(escrow_msg_id):
 async def get_running_deals():
     return {d["_id"]: d for d in deals_col.find({"status": "active"})}
 
-# ================== Processed ==================
+# ================== PROCESSED ==================
 
 async def mark_processed(msg_id, status="completed"):
     processed_col.update_one(
@@ -209,13 +195,16 @@ async def get_processed_status(msg_id):
     doc = processed_col.find_one({"msg_id": str(msg_id)})
     return doc["status"] if doc else None
 
-# ================== Stats & Reports ==================
+# ================== STATS & REPORTS ==================
 
 async def update_stats(user_id, amount, currency, is_admin=False, username=None):
     stats_col.update_one(
         {"user_id": str(user_id), "is_admin": is_admin},
-        {"$inc": {"deals": 1, f"amount_{currency.lower()}": float(amount)},
-         "$set": {"username": username or ""}},
+        {"$inc": {
+            "deals": 1,
+            f"amount_{currency.lower()}": float(amount)
+        },
+        "$set": {"username": username or ""}},
         upsert=True
     )
 
