@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 # ================= MONGODB INIT =================
 
 try:
-    import database  # just importing = mongo connect + indexes
+    import database  # importing = mongo connect + indexes
     LOGGER.info("✅ MongoDB connected")
 except Exception as e:
     LOGGER.error(f"❌ MongoDB connection failed: {e}")
@@ -25,19 +25,15 @@ except Exception as e:
 
 # ================= OPTIONAL MODULES =================
 
-# auto_kick (optional)
+# auto_kick (optional, safe)
 try:
     from auto_kick import auto_kick_worker
 except Exception:
     auto_kick_worker = None
     LOGGER.warning("⚠️ auto_kick.py not loaded (skipping)")
 
-# admin_logs (optional)
-try:
-    from admin_logs import send_log
-except Exception:
-    send_log = None
-    LOGGER.warning("⚠️ admin_logs.py not loaded (skipping)")
+# ❌ admin_logs intentionally DISABLED
+send_log = None
 
 # ================= MAIN =================
 
@@ -51,7 +47,7 @@ async def main():
     await client.start(bot_token=BOT_TOKEN)
     LOGGER.info("🤖 Escrow Bot Started")
 
-    # Register all handlers
+    # Register handlers
     register_handlers(client)
 
     # Background auto-kick task
@@ -61,13 +57,6 @@ async def main():
             LOGGER.info("✅ Auto-kick worker started")
         except Exception as e:
             LOGGER.warning(f"Auto-kick start failed: {e}")
-
-    # Startup log
-    if send_log:
-        try:
-            await send_log(client, "✅ Escrow Bot started & MongoDB connected")
-        except Exception as e:
-            LOGGER.warning(f"Log channel error: {e}")
 
     # Run forever
     await client.run_until_disconnected()
