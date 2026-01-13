@@ -3,7 +3,7 @@ import re
 import time
 from telethon import events, Button
 from telethon.tl.types import User
-from config import OWNER_ID, LOG_CHANNEL
+from config import OWNER_ID
 import database
 
 # =====================================================
@@ -362,3 +362,4 @@ form – Show form
     # -------------------------------------------------
     # mytotal, mydeals, leaderboard, running, dreport, wreport
     # 👉 SAME as your old handler.py
+
