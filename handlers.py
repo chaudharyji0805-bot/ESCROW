@@ -22,9 +22,13 @@ async def is_authorized_group(chat_id: int) -> bool:
 
 # ================== BASIC HELPERS ==================
 
-WELCOM_MSG = """🤖 Welcome to DVA Escrow Bot!
-Use in groups for managing safe deals.
-Type /help for commands."""
+WELCOM_MSG = """🤖 **Welcome to DVA Escrow Bot**
+
+Use this bot in **authorized groups only**  
+to manage safe escrow deals.
+
+Type /help to see all commands.
+"""
 
 def parse_deal_info(text):
     if not text:
@@ -58,41 +62,73 @@ async def get_deal(msg_id):
 
 def register_handlers(client):
 
-    # ---------- START / HELP ----------
+    # ---------- START ----------
 
     @client.on(events.NewMessage(pattern="/start"))
     async def start_handler(event):
         await event.reply(WELCOM_MSG)
 
-    @client.on(events.NewMessage(pattern="/help", func=lambda e: e.is_private))
+    # ---------- HELP (FULL COMMAND LIST) ----------
+
+    @client.on(events.NewMessage(pattern="/help"))
     async def help_handler(event):
-        await event.reply("Commands:\n/form\n/add\n/cancel\n/authgroup\n/deauthgroup")
+        help_text = f"""
+📖 **DVA Escrow Bot – Command List**
+
+🔐 **OWNER COMMANDS**
+/authgroup – Authorize a group for escrow  
+/deauthgroup – Remove escrow access from group  
+
+📝 **FORM COMMANDS**
+/form – Update escrow form  
+• Owner can set **global form (DM)**  
+• Group owner can set **group-specific form**  
+• Each authorized group has its **own form**
+
+🤝 **ESCROW COMMANDS (Authorized Groups Only)**
+form – Show escrow form  
+/add <amount> <inr|usdt> – Start escrow deal  
+/cancel – Cancel an active deal (reply required)
+
+📊 **STATS & REPORTS**
+/mytotal – Your admin escrow stats  
+/mydeals – Your personal deal summary  
+/leaderboard – Admin leaderboard  
+/running – Running escrow deals  
+/dreport – Daily report  
+/wreport – Weekly report
+
+⚠️ **IMPORTANT**
+• Escrow works **only in authorized groups**  
+• Each group has **separate form & data**
+"""
+        await event.reply(help_text)
 
     # ---------- AUTH GROUP ----------
 
     @client.on(events.NewMessage(pattern="/authgroup"))
     async def auth_group(event):
         if event.sender_id != OWNER_ID or not event.is_group:
-            return await event.reply("❌ Owner only & group only.")
+            return await event.reply("❌ Only bot OWNER can authorize a group.")
         await authorize_group(event.chat_id)
-        await event.reply("✅ This group is now AUTHORIZED.")
+        await event.reply("✅ This group is now **AUTHORIZED** for escrow.")
 
     @client.on(events.NewMessage(pattern="/deauthgroup"))
     async def deauth_group(event):
         if event.sender_id != OWNER_ID:
-            return await event.reply("❌ Owner only.")
+            return await event.reply("❌ Only bot OWNER can de-authorize.")
         await deauthorize_group()
-        await event.reply("🚫 Escrow disabled for authorized group.")
+        await event.reply("🚫 Escrow access removed from authorized group.")
 
-    # ---------- FORM UPDATE (SAFE) ----------
+    # ---------- FORM UPDATE (SAFE, PER-GROUP) ----------
 
     @client.on(events.NewMessage(pattern="/form"))
     async def update_form(event):
 
-        # OWNER in DM
+        # OWNER in DM → GLOBAL FORM
         if event.is_private and await is_bot_owner(event.sender_id):
             async with client.conversation(event.sender_id, timeout=60) as conv:
-                await conv.send_message("Send new GLOBAL form text:")
+                await conv.send_message("✏️ Send new **GLOBAL** form text:")
                 try:
                     msg = await conv.get_response()
                 except asyncio.TimeoutError:
@@ -100,24 +136,24 @@ def register_handlers(client):
                 await database.update_form_message(msg.text or "")
                 return await conv.send_message("✅ Global form updated.")
 
-        # GROUP OWNER
+        # GROUP OWNER → GROUP FORM
         if event.is_group:
             if not await is_authorized_group(event.chat_id):
                 return await event.reply("❌ This group is not authorized.")
             if not await is_group_owner(client, event.chat_id, event.sender_id):
-                return await event.reply("⚠️ Only GROUP OWNER can update form.")
+                return await event.reply("⚠️ Only **Group Owner** can update the form.")
 
             async with client.conversation(event.sender_id, timeout=60) as conv:
-                await conv.send_message("Send new GROUP form text:")
+                await conv.send_message("✏️ Send new **GROUP** form text:")
                 try:
                     msg = await conv.get_response()
                 except asyncio.TimeoutError:
                     return await conv.send_message("❌ Timeout.")
                 await database.update_form_message(msg.text or "", chat_id=event.chat_id)
                 await conv.send_message("✅ Group form updated.")
-                await event.reply("📩 Check DM.")
+                await event.reply("📩 Check your DM to update the form.")
 
-    # ---------- FORM TRIGGER (NO ENTITIES) ----------
+    # ---------- FORM TRIGGER ----------
 
     @client.on(events.NewMessage(func=lambda e: e.is_group and e.text and e.text.lower() == "form"))
     async def form_trigger(event):
@@ -135,7 +171,7 @@ def register_handlers(client):
         reply = await event.get_reply_message()
         deal = await get_deal(reply.id)
         if not deal:
-            return await event.reply("❌ Not an active deal.")
+            return await event.reply("❌ This is not an active deal.")
         await event.respond("❌ **DEAL CANCELLED**\n\n" + reply.text)
         await database.remove_deal(reply.id)
         await database.mark_processed(reply.id, "cancelled")
@@ -151,9 +187,9 @@ def register_handlers(client):
     @client.on(events.NewMessage(pattern=r'/add (\d+) (inr|usdt|₹|\$)', func=lambda e: e.is_group))
     async def add_deal(event):
         if not await is_authorized_group(event.chat_id):
-            return await event.reply("❌ Unauthorized group.")
+            return await event.reply("❌ This group is not authorized.")
         if not event.is_reply:
-            return await event.reply("Reply with `/add amount currency`")
+            return await event.reply("Reply to a message with `/add <amount> <currency>`")
 
         reply = await event.get_reply_message()
         key = (event.chat_id, reply.id)
@@ -163,21 +199,27 @@ def register_handlers(client):
 
         try:
             if await database.get_processed_status(reply.id):
-                return await event.reply("❌ Message already used.")
+                return await event.reply("❌ This message was already used.")
 
             if not await database.atomic_start_deal(reply.id):
-                return await event.reply("❌ Deal already running.")
+                return await event.reply("❌ A deal is already running on this message.")
 
             amt = int(event.pattern_match.group(1))
             cur = "inr" if event.pattern_match.group(2) in ["inr", "₹"] else "usdt"
             sym = "₹" if cur == "inr" else "$"
+
             deal_no = await database.increment_deal(cur)
             deal_id = f"#Escrow{deal_no}"
 
             sender = await event.get_sender()
             admin_mention = f"@{sender.username}" if sender.username else sender.first_name
 
-            text = f"🤝 **ESCROW STARTED**\n💰 {amt}{sym}\n🆔 {deal_id}\n🛡️ {admin_mention}"
+            text = f"""
+🤝 **ESCROW STARTED**
+💰 Amount: {amt}{sym}
+🆔 ID: {deal_id}
+🛡️ Admin: {admin_mention}
+"""
             btn = [Button.inline("Complete Deal", data=f"comp_{event.sender_id}")]
             sent = await event.respond(text, buttons=btn)
 
@@ -196,17 +238,18 @@ def register_handlers(client):
     async def complete_callback(event):
         admin_id = int(event.data.decode().split("_")[1])
         if event.sender_id != admin_id:
-            return await event.answer("Not your deal.", alert=True)
+            return await event.answer("Only the deal admin can complete.", alert=True)
 
         msg = await event.get_message()
         deal = await get_deal(msg.id)
         if not deal:
-            return await event.answer("Already processed.", alert=True)
+            return await event.answer("Deal already processed.", alert=True)
 
         await event.answer("Deal completed!", alert=True)
         await event.respond("✅ **DEAL COMPLETED**\n\n" + msg.text)
         await database.remove_deal(msg.id)
         await database.mark_processed(msg.id, "completed")
+
         try:
             await msg.delete()
         except:
