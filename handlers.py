@@ -261,16 +261,30 @@ form – Show form
             deal_no = await database.increment_deal(cur)
             deal_id = f"#Escrow{deal_no}"
 
+    
+                # Get buyer/seller
+                buyer_mention = "@Buyer"
+                seller_mention = "@Seller"
+                if reply_msg and reply_msg.text:
+                    text_to_parse = reply_msg.text
+                    seller_match = re.search(r'Seller:\s*(@?\w+)', text_to_parse, re.IGNORECASE)
+                    if seller_match: seller_mention = seller_match.group(1)
+                    buyer_match = re.search(r'Buyer:\s*(@?\w+)', text_to_parse, re.IGNORECASE)
+                    if buyer_match: buyer_mention = buyer_match.group(1)
+
+
             sender = await event.get_sender()
             admin = f"@{sender.username}" if sender.username else sender.first_name
 
             text = f"""┏━━━━━━━━━━━━━━━━━━━┓
 ┃ 🤝 **ESCROW STARTED**
-┃━━━━━━━━━━━━━━━━━━━┃
-┃ 💰 Amount: {amt}{sym}
+┃━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┃
+┃ 💰 Amount: {amt}{sym}     
+┃ 👤 Buyer: {buyer_mention}
+┃ 👨‍💼 Seller: {seller_mention}
 ┃ 🆔 ID: {deal_id}
 ┃ 🛡️ Admin: {admin}
-┗━━━━━━━━━━━━━━━━━━━┛"""
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"""
 
             btn = [Button.inline("Complete Deal", data=f"comp_{event.sender_id}")]
             sent = await event.respond(text, buttons=btn)
@@ -285,6 +299,8 @@ form – Show form
                 "amount": amt,
                 "currency": cur,
                 "deal_id": deal_id,
+                "buyer": buyer_mention,
+                "seller": seller_mention
                 "group_id": event.chat_id
             })
         finally:
@@ -349,3 +365,4 @@ form – Show form
 
         await database.remove_deal(reply.id)
         await database.mark_processed(reply.id, "cancelled")
+
