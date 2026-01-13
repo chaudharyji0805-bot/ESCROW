@@ -47,15 +47,33 @@ async def is_bot_owner(uid):
 async def is_group_owner(client, chat_id, uid):
     try:
         perms = await client.get_permissions(chat_id, uid)
-        if perms.is_creator:
-            return True
+        return perms.is_creator
     except:
-        pass
-    return False
+        return False
 
 
 async def get_deal(msg_id):
     return await database.get_deal(msg_id)
+
+
+# =====================================================
+# ADMIN LIMIT WRAPPER (🔥 FIX FOR get_user_limit ERROR)
+# =====================================================
+
+async def get_user_limit(user_id, currency):
+    """
+    Returns:
+    - None  → unlimited
+    - int   → limit value
+    """
+    data = await database.get_admin_limit(user_id)
+
+    # Super mod / mod = unlimited
+    if data.get("is_mod") or data.get("is_mmod"):
+        return None
+
+    return int(data.get(currency.lower(), 0))
+
 
 # =====================================================
 # AUTH GROUP (ONLY BOT OWNER)
@@ -65,12 +83,13 @@ async def authorize_group(chat_id):
     await database.set_auth_group(chat_id)
 
 
-async def deauthorize_group(chat_id):
-    await database.remove_auth_group(chat_id)
+async def deauthorize_group():
+    await database.remove_auth_group()
 
 
 async def is_authorized_group(chat_id):
     return await database.is_auth_group(chat_id)
+
 
 # =====================================================
 # PROOF CHANNEL (PER GROUP)
@@ -86,6 +105,7 @@ async def unset_proof_channel(group_id):
 
 async def get_proof_channel(group_id):
     return await database.get_proof_channel(group_id)
+
 
 # =====================================================
 # HANDLERS
@@ -121,7 +141,7 @@ def register_handlers(client):
 /admin <user> – Admin (5000 INR + 50 USDT)
 /admin <user> <amount> <inr|usdt> – Custom limit  
 /mod <user> – Unlimited INR + USDT  
-/smod <user> – Super Mod (can admin/unadmin/mod)
+/smod <user> – Super Mod  
 /unadmin <user> – Remove admin  
 /unmod <user> – Remove mod/smod  
 
@@ -159,7 +179,7 @@ form – Show form
     async def deauth_group(event):
         if event.sender_id != OWNER_ID:
             return await event.reply("❌ Bot owner only.")
-        await deauthorize_group(event.chat_id)
+        await deauthorize_group()
         await event.reply("🚫 Group deauthorized.")
 
     # -------------------------------------------------
@@ -200,28 +220,7 @@ form – Show form
         await event.reply(text)
 
     # -------------------------------------------------
-    # PROOF CHANNEL
-    # -------------------------------------------------
-    @client.on(events.NewMessage(pattern=r"/setproof (.+)", func=lambda e: e.is_group))
-    async def setproof(event):
-        if not await is_group_owner(client, event.chat_id, event.sender_id):
-            return await event.reply("❌ Only group owner.")
-        try:
-            ch = await client.get_entity(event.pattern_match.group(1))
-            await set_proof_channel(event.chat_id, ch.id)
-            await event.reply("✅ Proof channel set.")
-        except:
-            await event.reply("❌ Invalid channel / bot not admin.")
-
-    @client.on(events.NewMessage(pattern="/unsetproof", func=lambda e: e.is_group))
-    async def unsetproof(event):
-        if not await is_group_owner(client, event.chat_id, event.sender_id):
-            return await event.reply("❌ Only group owner.")
-        await unset_proof_channel(event.chat_id)
-        await event.reply("🗑️ Proof channel removed.")
-
-    # -------------------------------------------------
-    # ADD DEAL + LIMIT CHECK + PIN
+    # ADD DEAL
     # -------------------------------------------------
     deal_locks = {}
 
@@ -248,10 +247,10 @@ form – Show form
             amt = int(event.pattern_match.group(1))
             cur = "inr" if event.pattern_match.group(2) in ["inr", "₹"] else "usdt"
 
-            limit = await database.get_user_limit(event.sender_id, cur)
+            limit = await get_user_limit(event.sender_id, cur)
             if limit is not None and amt > limit:
                 warn = await event.reply(
-                    f"❌ @{event.sender.username or event.sender_id} your limit is less than deal amount."
+                    f"❌ Your limit is less than deal amount."
                 )
                 await asyncio.sleep(60)
                 await warn.delete()
@@ -292,7 +291,7 @@ form – Show form
             deal_locks.pop(key, None)
 
     # -------------------------------------------------
-    # COMPLETE DEAL (ONLY STARTER ADMIN)
+    # COMPLETE DEAL (NO GLOBAL LOG)
     # -------------------------------------------------
     @client.on(events.CallbackQuery(pattern=br"comp_(\d+)"))
     async def complete_deal(event):
@@ -322,17 +321,11 @@ form – Show form
             except:
                 pass
 
-        if LOG_CHANNEL:
-            try:
-                await client.send_message(LOG_CHANNEL, text)
-            except:
-                pass
-
         await database.remove_deal(msg.id)
         await database.mark_processed(msg.id, "completed")
 
     # -------------------------------------------------
-    # CANCEL DEAL (ONLY STARTER ADMIN)
+    # CANCEL DEAL
     # -------------------------------------------------
     @client.on(events.NewMessage(pattern="/cancel", func=lambda e: e.is_group))
     async def cancel_deal(event):
@@ -356,10 +349,3 @@ form – Show form
 
         await database.remove_deal(reply.id)
         await database.mark_processed(reply.id, "cancelled")
-
-    # -------------------------------------------------
-    # STATS / REPORTS (UNCHANGED)
-    # -------------------------------------------------
-    # mytotal, mydeals, leaderboard, running, dreport, wreport
-    # 👉 SAME as your old handler.py
-
