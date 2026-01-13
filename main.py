@@ -1,20 +1,10 @@
 import asyncio
 import logging
-import os
+import sys
 
 from telethon import TelegramClient
 from config import API_ID, API_HASH, BOT_TOKEN
 from handlers import register_handlers
-
-# 🔥 MongoDB init (IMPORTANT)
-try:
-    import database  # just importing = mongo connection + indexes
-except Exception as e:
-    print("❌ MongoDB connection failed:", e)
-    raise SystemExit("Fix MONGO_URI and restart bot")
-
-from auto_kick import auto_kick_worker
-from admin_logs import send_log
 
 # ================= LOGGING =================
 
@@ -24,10 +14,34 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
+# ================= MONGODB INIT =================
+
+try:
+    import database  # just importing = mongo connect + indexes
+    LOGGER.info("✅ MongoDB connected")
+except Exception as e:
+    LOGGER.error(f"❌ MongoDB connection failed: {e}")
+    sys.exit("Fix MONGO_URI and restart bot")
+
+# ================= OPTIONAL MODULES =================
+
+# auto_kick (optional)
+try:
+    from auto_kick import auto_kick_worker
+except Exception:
+    auto_kick_worker = None
+    LOGGER.warning("⚠️ auto_kick.py not loaded (skipping)")
+
+# admin_logs (optional)
+try:
+    from admin_logs import send_log
+except Exception:
+    send_log = None
+    LOGGER.warning("⚠️ admin_logs.py not loaded (skipping)")
+
 # ================= MAIN =================
 
 async def main():
-    # Create Telegram client
     client = TelegramClient(
         "bot_session",
         API_ID,
@@ -37,26 +51,31 @@ async def main():
     await client.start(bot_token=BOT_TOKEN)
     LOGGER.info("🤖 Escrow Bot Started")
 
-    # Register handlers
+    # Register all handlers
     register_handlers(client)
 
-    # Background tasks
-    asyncio.create_task(auto_kick_worker(client))
+    # Background auto-kick task
+    if auto_kick_worker:
+        try:
+            asyncio.create_task(auto_kick_worker(client))
+            LOGGER.info("✅ Auto-kick worker started")
+        except Exception as e:
+            LOGGER.warning(f"Auto-kick start failed: {e}")
 
     # Startup log
-    try:
-        await send_log(client, "✅ Escrow Bot started & MongoDB connected")
-    except Exception as e:
-        LOGGER.warning(f"Log channel error: {e}")
+    if send_log:
+        try:
+            await send_log(client, "✅ Escrow Bot started & MongoDB connected")
+        except Exception as e:
+            LOGGER.warning(f"Log channel error: {e}")
 
     # Run forever
     await client.run_until_disconnected()
-
 
 # ================= ENTRY =================
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except KeyboardInterrupt:
-        LOGGER.info("Bot stopped manually")
+    except (KeyboardInterrupt, SystemExit):
+        LOGGER.info("🛑 Bot stopped")
