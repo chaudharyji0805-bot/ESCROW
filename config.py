@@ -2,21 +2,16 @@ import os
 
 # ================== TELEGRAM CONFIG ==================
 
-API_ID = int(os.getenv("API_ID", "31573732"))
-API_HASH = os.getenv("API_HASH", "ecebdea86eae3370dd8138bc0b9a385b")
-BOT_TOKEN = os.getenv("BOT_TOKEN","5453914355:AAEv4RA7Y_BtXQO-re4xIu-JU0KN10qirKM")  # MUST be set in env
-
-OWNER_ID = int(os.getenv("OWNER_ID", "7538572906"))
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+OWNER_ID = int(os.getenv("OWNER_ID"))
 
 # ================== MONGODB CONFIG ==================
 
 MONGO_URI = os.getenv("MONGO_URI")
 
-# ================== LOG CHANNEL ==================
-# Recommended: numeric channel ID (-100xxxx)
-LOG_CHANNEL = os.getenv("LOG_CHANNEL", "@BotColony")
-
-# ================== VALIDATION (VERY IMPORTANT) ==================
+# ================== VALIDATION ==================
 
 missing = []
 
@@ -32,6 +27,4 @@ if not MONGO_URI:
     missing.append("MONGO_URI")
 
 if missing:
-    raise RuntimeError(
-        f"❌ Missing required config values: {', '.join(missing)}"
-    )
+    raise RuntimeError(f"❌ Missing required env vars: {', '.join(missing)}")
