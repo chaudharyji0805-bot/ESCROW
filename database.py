@@ -13,17 +13,17 @@ db = mongo["escrow_bot"]
 
 # ================== Collections ==================
 
-meta = db.meta                  # global counters & config
-deals_col = db.deals            # deals
-limits_col = db.limits          # admin limits
-stats_col = db.stats            # admin / user stats
-forms_col = db.forms            # form messages
-processed_col = db.processed   # processed msgs
-reports_col = db.reports        # reports
+meta = db.meta
+deals_col = db.deals
+limits_col = db.limits
+stats_col = db.stats
+forms_col = db.forms
+processed_col = db.processed
+reports_col = db.reports
 active_forms_col = db.active_forms
-tipped_col = db.tipped          # tipped messages
+tipped_col = db.tipped
 
-# ================== Indexes (FAST & SAFE) ==================
+# ================== Indexes ==================
 
 deals_col.create_index([("status", ASCENDING)])
 deals_col.create_index([("buyer", ASCENDING)])
@@ -49,6 +49,38 @@ def _get_meta():
         upsert=True
     )
     return meta.find_one({"_id": "global"})
+
+# ================== AUTH GROUP ==================
+
+async def set_auth_group(chat_id: int):
+    meta.update_one(
+        {"_id": "auth_group"},
+        {"$set": {"chat_id": int(chat_id)}},
+        upsert=True
+    )
+
+async def remove_auth_group():
+    meta.delete_one({"_id": "auth_group"})
+
+async def is_auth_group(chat_id: int) -> bool:
+    doc = meta.find_one({"_id": "auth_group"})
+    return bool(doc and int(doc.get("chat_id")) == int(chat_id))
+
+# ================== PROOF CHANNEL ==================
+
+async def set_proof_channel(group_id: int, channel_id: int):
+    meta.update_one(
+        {"_id": f"proof_{group_id}"},
+        {"$set": {"channel_id": int(channel_id)}},
+        upsert=True
+    )
+
+async def unset_proof_channel(group_id: int):
+    meta.delete_one({"_id": f"proof_{group_id}"})
+
+async def get_proof_channel(group_id: int):
+    doc = meta.find_one({"_id": f"proof_{group_id}"})
+    return int(doc["channel_id"]) if doc and "channel_id" in doc else None
 
 # ================== Tipped ==================
 
@@ -87,7 +119,6 @@ async def get_form_data(chat_id=None):
         doc = forms_col.find_one({"chat_id": str(chat_id)})
         if doc:
             return doc["message"], doc.get("entities", [])
-
     m = _get_meta()
     return m["form_message"], m.get("form_entities", [])
 
@@ -135,10 +166,7 @@ async def decrement_deal(currency="inr"):
 
 async def atomic_start_deal(form_msg_id):
     try:
-        active_forms_col.insert_one({
-            "form_id": str(form_msg_id),
-            "status": "processing"
-        })
+        active_forms_col.insert_one({"form_id": str(form_msg_id), "status": "processing"})
         return True
     except:
         return False
@@ -150,15 +178,11 @@ async def store_deal(escrow_msg_id, form_msg_id, deal_data):
         "time": time.time(),
         "form_id": str(form_msg_id)
     })
-
     deals_col.insert_one(deal_data)
     active_forms_col.update_one(
         {"form_id": str(form_msg_id)},
         {"$set": {"escrow_id": str(escrow_msg_id)}}
     )
-
-async def is_form_active(form_msg_id):
-    return active_forms_col.find_one({"form_id": str(form_msg_id)}) is not None
 
 async def remove_deal(escrow_msg_id):
     deal = deals_col.find_one({"_id": str(escrow_msg_id)})
@@ -190,11 +214,8 @@ async def get_processed_status(msg_id):
 async def update_stats(user_id, amount, currency, is_admin=False, username=None):
     stats_col.update_one(
         {"user_id": str(user_id), "is_admin": is_admin},
-        {"$inc": {
-            "deals": 1,
-            f"amount_{currency.lower()}": float(amount)
-        },
-        "$set": {"username": username or ""}},
+        {"$inc": {"deals": 1, f"amount_{currency.lower()}": float(amount)},
+         "$set": {"username": username or ""}},
         upsert=True
     )
 
@@ -218,7 +239,6 @@ async def get_leaderboard():
 async def get_report(seconds):
     cutoff = time.time() - seconds
     cursor = reports_col.find({"time": {"$gte": cutoff}})
-
     deals = total_inr = total_usdt = 0
     for d in cursor:
         deals += 1
@@ -226,5 +246,4 @@ async def get_report(seconds):
             total_usdt += d["amount"]
         else:
             total_inr += d["amount"]
-
     return deals, total_inr, total_usdt
